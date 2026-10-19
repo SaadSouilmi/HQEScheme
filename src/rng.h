@@ -1,7 +1,6 @@
 #ifndef RNG_H
 #define RNG_H
 
-#include "base.h"
 #if !defined(__SIZEOF_INT128__)
 #error "PCG64 requires compiler support for unsigned 128-bit integers."
 #endif

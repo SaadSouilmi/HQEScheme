@@ -1,14 +1,12 @@
 #ifndef PROFILE_H
 #define PROFILE_H
 
-#include "base.h"
-
-typedef enum time_unit {
+enum time_unit {
 	TimeUnit_Sec,
 	TimeUnit_Ms,
 	TimeUnit_Us,
 	TimeUnit_Ns,
-} time_unit;
+};
 
 internal const char *
 TimeUnitName(time_unit Unit)
@@ -24,12 +22,12 @@ TimeUnitName(time_unit Unit)
     return "?";
 }
 
-typedef struct tsc_calibration {
+struct tsc_calibration {
 	U64 TSCTicks;
 	U64 OSNanos;
-} tsc_calibration;
+};
 
-typedef struct profile_stats {
+struct profile_stats {
     U64 Count;
 
     F64 AvgTicks;
@@ -38,12 +36,14 @@ typedef struct profile_stats {
 
     U64 MinTicks;
     U64 MaxTicks;
-} profile_stats;
+};
 
 internal U64 ReadTSC();
 internal U64 ReadOSTime();
 internal tsc_calibration GetTSCCalibration();
+internal F64 TSCToWall(F64 ElapsedTicks, time_unit Unit);
 internal F64 TSCToWall(U64 ElapsedTicks, time_unit Unit);
+internal void IncrementStats(profile_stats *Stats, U64 Elapsed);
 
 #endif // PROFILE_H
 

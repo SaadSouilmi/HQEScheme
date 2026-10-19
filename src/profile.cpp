@@ -6,7 +6,9 @@ internal U64
 ReadTSC()
 {
 	U32 Aux;
-	return __rdtscp(&Aux);
+	U64 Ticks = __rdtscp(&Aux);
+	_mm_lfence();
+	return Ticks;
 }
 
 internal U64
@@ -40,10 +42,10 @@ GetTSCCalibration()
 }
 
 internal F64
-TSCToWall(U64 ElapsedTicks, time_unit Unit)
+TSCToWall(F64 ElapsedTicks, time_unit Unit)
 {
 	tsc_calibration Calibration = GetTSCCalibration();
-	F64 Elapsed = ((F64)ElapsedTicks *
+	F64 Elapsed = (ElapsedTicks *
 						(F64)Calibration.OSNanos /
 						(F64)Calibration.TSCTicks);
 
@@ -68,6 +70,38 @@ TSCToWall(U64 ElapsedTicks, time_unit Unit)
 	}
 	return -1;
 }
+
+internal F64
+TSCToWall(U64 Elapsed, time_unit Unit)
+{
+	return TSCToWall((F64)Elapsed, Unit);
+}
+
+
+internal void
+IncrementStats(profile_stats *Stats, U64 Elapsed)
+{
+	Stats->Count++;
+	F64 Delta = (F64)Elapsed - Stats->AvgTicks;
+	Stats->AvgTicks += Delta / (F64)Stats->Count;
+
+	F64 Delta2 = (F64)Elapsed - Stats->AvgTicks;
+	Stats->M2Ticks += Delta * Delta2;
+
+	if (Stats->Count > 1)
+	{
+		Stats->StdTicks = sqrt(Stats->M2Ticks / (F64)(Stats->Count - 1));
+		Stats->MinTicks = Min(Stats->MinTicks, Elapsed);
+		Stats->MaxTicks = Max(Stats->MaxTicks, Elapsed);
+	}
+	else
+	{
+		Stats->MinTicks = Elapsed;
+		Stats->MaxTicks = Elapsed;
+	}
+
+};
+
 
 #define TimeFunctionN(ProfileStats, NIterations, Call, Print, Unit)   \
     do                                                               \

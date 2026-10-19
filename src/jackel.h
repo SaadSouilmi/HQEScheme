@@ -8,15 +8,14 @@
 #ifndef JACKEL_H
 #define JACKEL_H
 
-#include "base.h"
 #include <float.h>
 #include <math.h>
 
-typedef enum option_type
+enum option_type
 {
 	Option_Call = 1,
 	Option_Put = -1,
-} option_type;
+};
 
 #define JackelOneOverSqrtTwo 0.7071067811865475244008443621048490392848359376887
 #define JackelOneOverSqrtTwoPi 0.3989422804014326779399460599343818684758586311649

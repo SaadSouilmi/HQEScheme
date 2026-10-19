@@ -2,7 +2,6 @@
    Apache-2.0; see licenses/pcg.txt. Project API/types and distributions added.
    sampling follows NumPy. Copyright 2005-2025 NumPy Developers; BSD-3-Clause,
    see licenses/numpy.txt. C port, explicit uniform endpoints, thread-safe init. */
-#include "random.h"
 #include <math.h>
 #include <pthread.h>
 
