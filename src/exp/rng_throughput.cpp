@@ -14,10 +14,16 @@ inline void KeepAlive(F64 X)
 	__asm__ volatile("": : "x"(X));
 }
 
+inline void KeepAlive(U64 X)
+{
+	__asm__ volatile("": : "x"(X));
+}
+
+
 I32
 main()
 {
-	random_series Rng;
+	rng Rng;
 	RandomSeed(&Rng, 1337, 0);
 
 	GetTSCCalibration();
@@ -43,8 +49,8 @@ main()
 		IncrementStats(&U64Profile, Elapsed);
 	}
 	
-	std::printf("U64 throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(U64Profile.AvgTicks, TimeUnit_Sec));
-	std::printf("U64 avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(U64Profile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(U64Profile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
+	printf("U64 throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(U64Profile.AvgTicks, TimeUnit_Sec));
+	printf("U64 avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(U64Profile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(U64Profile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
 
 	profile_stats UniformProfile = {};
 	for (U64 B = 0; B < NBatches; B++)
@@ -58,8 +64,8 @@ main()
 		IncrementStats(&UniformProfile, Elapsed);
 	}
 	
-	std::printf("Uniform throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(UniformProfile.AvgTicks, TimeUnit_Sec));
-	std::printf("Uniform avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(UniformProfile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(UniformProfile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
+	printf("Uniform throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(UniformProfile.AvgTicks, TimeUnit_Sec));
+	printf("Uniform avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(UniformProfile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(UniformProfile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
 
 	profile_stats NormProfile = {};
 	for (U64 B = 0; B < NBatches; B++)
@@ -73,8 +79,8 @@ main()
 		IncrementStats(&NormProfile, Elapsed);
 	}
 	
-	std::printf("Normal throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(NormProfile.AvgTicks, TimeUnit_Sec));
-	std::printf("Normal avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(NormProfile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(NormProfile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
+	printf("Normal throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(NormProfile.AvgTicks, TimeUnit_Sec));
+	printf("Normal avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(NormProfile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(NormProfile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
 
 	profile_stats ExpProfile = {};
 	for (U64 B = 0; B < NBatches; B++)
@@ -88,7 +94,31 @@ main()
 		IncrementStats(&ExpProfile, Elapsed);
 	}
 	
-	std::printf("Exp throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(ExpProfile.AvgTicks, TimeUnit_Sec));
-	std::printf("Exp avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(ExpProfile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(ExpProfile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
+	printf("Exp throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(ExpProfile.AvgTicks, TimeUnit_Sec));
+	printf("Exp avg sampling cost: %.3f ± %.3f ns/sample\n\n", TSCToWall(ExpProfile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, TSCToWall(ExpProfile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
 
+	std::pair<F64, F64> Psi[NSamples];
+	for (U64 J = 0; J < NSamples; J++)
+	{
+		bool Flag = RandomUniform(&Rng) < 0.5;
+		Psi[J].first = (Flag) ? 1 : 2;
+		Psi[J].second = 2;
+	}
+
+	profile_stats QEProfile = {};
+	for (U64 B = 0; B < NBatches; B++)
+	{
+		U64 Start = ReadTSC();
+		for (U64 t = 0; t < NSamples; t++)
+		{
+			KeepAlive(RandomQE(Psi[t].first, Psi[t].second, &Rng));
+		}
+		U64 Elapsed = ReadTSC() - Start;
+		IncrementStats(&QEProfile, Elapsed);
+	}
+
+	printf("QE throughput: %.3f samples/sec\n", (F64)NSamples/TSCToWall(QEProfile.AvgTicks, TimeUnit_Sec));
+	printf("QE avg sampling cost: %.3f ± %.3f ns/sample\n\n", 
+		   TSCToWall(QEProfile.AvgTicks, TimeUnit_Ns)/(F64)NSamples, 
+		   TSCToWall(QEProfile.StdTicks, TimeUnit_Ns)/(F64)NSamples);
 }

@@ -89,7 +89,7 @@ ZigInit(void)
 internal void RandomInit(void) { pthread_once(&GlobalZigOnce, ZigInit); }
 
 internal U64
-RandomU64(random_series *R)
+RandomU64(rng *R)
 {
 	U128 Multiplier = ((U128)2549297995355413924ULL << 64) | 4865540595714422341ULL;
 	R->State = R->State*Multiplier + R->Stream;
@@ -98,21 +98,21 @@ RandomU64(random_series *R)
 	return (Bits >> Rotation) | (Bits << ((-Rotation) & 63));
 }
 
-internal U32 RandomU32(random_series *R) { return (U32)(RandomU64(R) >> 32); }
+internal U32 RandomU32(rng *R) { return (U32)(RandomU64(R) >> 32); }
 
 internal void
-RandomSeed(random_series *R, U64 Seed, U64 Stream)
+RandomSeed(rng *R, U64 Seed, U64 Stream)
 {
 	RandomInit();
-	*R = (random_series){.Stream = ((U128)Stream << 1) | 1};
+	*R = (rng){.Stream = ((U128)Stream << 1) | 1};
 	RandomU64(R); R->State += Seed; RandomU64(R);
 }
 
-internal F64 RandomUniform(random_series *R) { return ((F64)(RandomU64(R) >> 12) + 0.5)*0x1p-52; }
-internal F64 RandomUniformClosedOpen(random_series *R) { return (RandomU64(R) >> 11)*0x1p-53; }
+internal F64 RandomUniform(rng *R) { return ((F64)(RandomU64(R) >> 12) + 0.5)*0x1p-52; }
+internal F64 RandomUniformClosedOpen(rng *R) { return (RandomU64(R) >> 11)*0x1p-53; }
 
 internal F64
-RandomNormal(random_series *Rng)
+RandomNormal(rng *Rng)
 {
 	for (;;)
 	{
@@ -144,7 +144,7 @@ RandomNormal(random_series *Rng)
 }
 
 internal F64
-RandomExponential(random_series *Rng)
+RandomExponential(rng *Rng)
 {
 	for (;;)
 	{
@@ -161,3 +161,20 @@ RandomExponential(random_series *Rng)
 	}
 }
 
+internal F64 
+RandomQE(F64 Mu, F64 Var, rng *Rng)
+{
+	if (Var == 0) { return Mu; }
+
+	F64 Psi = Var / (Mu * Mu);
+
+	if (Psi < 1.5)
+	{
+		F64 a = Psi / (2 + sqrt(4 - 2*Psi));
+		F64 Z = sqrt(1-a) + sqrt(a) * RandomNormal(Rng);
+		return Mu * Z * Z;
+	}
+	return (F64)((1 + Psi) * RandomUniform(Rng) < 2) 
+		   * 0.5 * Mu * (1 + Psi) 
+		   * RandomExponential(Rng);
+}

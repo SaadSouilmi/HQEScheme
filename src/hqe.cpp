@@ -164,3 +164,52 @@ HQEInit(hqe_scheme *HQE, F64 T, U64 NSteps, const rough_heston_model *Model)
 	return 0;
 }
 
+internal I32
+SamplePath(F64 *Var, F64 *LogS, F64 S0, const hqe_scheme *HQE, rng *Rng)
+{
+	constexpr F64 MeanFloor = 1e-12;
+	F64 Alpha  = HQE->Model->Params.Alpha;
+	U64 NSteps = HQE->NSteps;
+	F64 Delta  = HQE->Delta;
+	F64 Rho    = HQE->Model->Params.Rho;
+	F64 RhoBar = sqrt(1 - Rho*Rho);
+
+	F64 *Chi = (F64*)malloc(sizeof(F64)*(NSteps+1));
+	if (!Chi) { return -1; }
+	Chi[0] = 0.0;
+	Var[0]  = HQE->Model->Params.V0;
+	LogS[0] = log(S0);
+
+	for (U64 Step = 1; Step < NSteps + 1; Step++)
+	{
+		F64 Mean = HQE->Xi0[Step];
+		for (U64 K = 1; K < Step; K++)
+		{
+			Mean += Chi[K] * HQE->W[Step-K];
+		}
+		if (!isfinite(Mean)) { free(Chi); return -1; }
+		Mean = Max(MeanFloor, Mean);
+
+		F64 vbar = (Mean + (Alpha + Alpha - 1)*Var[Step-1]) / (Alpha + Alpha);
+		F64 Mu = 0.5 * Mean;
+		F64 YChi = RandomQE(Mu, vbar*HQE->CChi, Rng);
+		F64 YEps = RandomQE(Mu, vbar*HQE->CEps, Rng);
+
+		Chi[Step]  = (YChi - Mu) / HQE->Beta;
+		Var[Step]  = YChi + YEps;
+
+		F64 DeltaI = 0.5 * Delta * (Var[Step] + Var[Step-1]);
+		LogS[Step] = LogS[Step-1] 
+			         - 0.5 * DeltaI + Rho * Chi[Step] 
+			         + RhoBar * sqrt(DeltaI) * RandomNormal(Rng);
+		if (!isfinite(LogS[Step]) || !isfinite(Var[Step]) || !isfinite(Chi[Step]))
+		{ 
+			free(Chi); 
+			return -1;
+		}
+	}
+
+	free(Chi);
+	return 0;
+}
+

@@ -34,7 +34,6 @@ struct hqe_scheme {
 	F64 Beta; F64 CChi; F64 CEps;
 };
 
-
 internal void ModelInit(rough_heston_model *Model, const model_params *Params);
 internal inline F64 KernelEval(F64 t, const rough_heston_model *Model);
 internal inline F64 KernelInt(F64 Delta, const rough_heston_model *Model);
@@ -44,5 +43,7 @@ internal quad_result Quadrature(F64 A, F64 B, const kernel_sqr_int *KerSqr);
 internal F64 KernelSqrInt(const kernel_sqr_int *KerSqr);
 internal inline F64 FwdVar0(F64 t, const rough_heston_model *Model);
 internal I32 HQEInit(hqe_scheme *HQE, F64 T, U64 NSteps, const rough_heston_model *Model);
+
+internal I32 SamplePath(F64 *Var, F64 *LogS, F64 S0, const hqe_scheme *HQE, rng *Rng);
 
 #endif // HQE_H
